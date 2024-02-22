@@ -368,7 +368,7 @@ cherry-pick () {
     commit "$hash"
   fi
 
-  run cherry-pick -x --allow-empty "$hash" && return 0
+  run cherry-pick -x --allow-empty  -m 1 "$hash" && return 0
 
   err "${red}✘${reset} Cherry-picking ${yellow}$hash${reset} failed"
 
