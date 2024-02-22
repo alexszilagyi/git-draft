@@ -62,10 +62,11 @@ EOF
 
 main () {
   local args OPTIND OPTARG OPTERR option \
-    color dryrun silent verbose skip_existing stdin hashes selected \
+    color dryrun silent verbose skip_existing stdin hashes selected sort \
     reset red green yellow blue magenta cyan action
 
   args=()
+  sort=0
 
   for option in "$@"; do
     case "$option" in
@@ -95,6 +96,8 @@ main () {
           new) selected="new" ;;
           all) selected="all" ;;
           stdin) stdin=1 ;;
+          sort) sort=0 ;;
+          no-sort) sort=0 ;;
           revert) action="revert" ;;
           *) fatal "Invalid option: --$OPTARG" ;;
         esac
@@ -166,16 +169,23 @@ fatal () {
   err "$@"
   exit 1
 }
+sort_commits_by_date() {
+  git log --pretty='%H %at' "$@" | sort -k2 -n | cut -d' ' -f1
+}
 
-pick () {
-  local selection hash git_directory
+pick() {
+  local selection hash git_directory sort_commits
 
   git_directory=$(git rev-parse --git-dir) \
     || fatal "${red}✘${reset} Not inside a git directory."
 
   hashes "$@"
 
-  commits "${hashes[@]}"
+  if [ $sort -gt 0 ]; then
+    commits "$(sort_commits_by_date "${hashes[@]}")"
+  else
+    commits "${hashes[@]}"
+  fi
 
   if ! [ "$selected" ] && ! [ "$silent" ]; then
     if [ "$action" = "revert" ]; then
@@ -358,7 +368,7 @@ cherry-pick () {
     commit "$hash"
   fi
 
-  run cherry-pick -x "$hash" && return 0
+  run cherry-pick -x --allow-empty "$hash" && return 0
 
   err "${red}✘${reset} Cherry-picking ${yellow}$hash${reset} failed"
 
